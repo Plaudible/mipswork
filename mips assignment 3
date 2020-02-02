@@ -1,0 +1,181 @@
+.data  # Defines variable section of an assembly routine
+
+array:     .word 5, 3, 4, 2, -9, 7, 6, -3, -8, 0 #defines variable array as a word array with 10 integers
+msg:       .asciiz "The integer list is: "
+space:     .asciiz "    "
+return:    .asciiz "\n"
+
+.text
+.globl main
+main:
+           addi $sp, $sp, -16                    #allocate 4 words from stack
+ 	   sw $a0, 0($sp)                        #store address of array
+  	   sw $a1, 4($sp)                        #n variable allocation
+           sw $s2, 8($sp)                        #size variable allocation
+  	   sw $ra, 12($sp)                       #stack allocation
+           la $s0, array                         # load address of array into register $s0
+           add $a0, $s0, $0                      # Moves the address of array in $s0  into register $a0.
+                                                 # Set argument 1 to the array.
+           addi $a1, $zero, 10                   # Set argument 2 to (n = 10)
+           jal print_array                       # display original list      
+           add   $a0, $s0, $0                    # Moves the address of array into argument 1 (register $a0).
+           addi $a1, $zero, 0                    # Set argument 2 to (low = 0)
+           addi $a2, $zero, 9                    # Set argument 3 to (high = 9, last index in array)
+           jal  quicksort                        # Call quick sort
+           add $a0, $s0, $0                      # Set argument 1 to the array.
+           addi $a1, $zero, 10                   # Set argument 2 to (n = 10)
+           jal print_array                       # display sorted list
+           lw $a1, 0($sp)                        #deallocate array address
+     	   lw $a2, 4($sp)                        #deallocate for variable n
+           lw $s3, 8($sp)                        #deallocate for size
+     	   lw $ra, 12($sp)                       #deallocate for ra
+    	   addi $sp, $sp, 16                     #deallocate 4 words from stack
+           li $v0, 10                            # Terminate program run
+           syscall
+       
+quicksort:
+          addi $sp, $sp, -16                    #allocate 4 words from stack
+ 	  sw $a0, 0($sp)                        #store address of array
+  	  sw $s0, 4($sp)                        #low
+          sw $s1, 8($sp)                        #high
+          sw $ra, 12($sp)                       #stack allocation
+	  slt $t1, $s0, $s1                     #set less than for low and high
+	  beq $1, $zero, end_quicksort          #if true end
+          jal partition                         #jump to partition
+          add $s1, $v0, -1                      #decrement high
+          jal quicksort                         #recursion
+          lw $s1, 8($sp)                        #store high
+          add $s0, $v0, 1                       #increment low
+          jal quicksort                         #recursion
+          lw $s0, 4($sp)                        #store low
+          
+end_quicksort:
+	  addi $sp, $sp, 16                     #deallocate 4 words from stack
+ 	  lw $a0, 0($sp)                        #store address of array
+  	  lw $s0, 4($sp)                        #low
+          lw $s1, 8($sp)                        #high
+          lw $ra, 12($sp)                       #stack allocation
+	  jr $ra
+          
+swap:
+	  addi $sp, $sp, -16                    #allocate 4 words from stack
+ 	  sw $a0, 0($sp)                        #store address of array
+  	  sw $s0, 4($sp)                        #a
+          sw $s1, 8($sp)                        #b
+          sw $ra, 12($sp)                       #stack allocation           
+          sll $t7, $s0, 2                  
+          add $t7, $a0, $t7
+          lw $t9, 0($t7)
+          sll $t8, $s1, 2
+          add $t8, $a0, $t8
+          lw $t0, 0($t8)
+          sw $t0, 0($t7)
+          sw $t9, 0($t8)
+          addi $sp, $sp, 16                     #deallocate 4 words from stack
+          lw $a0, 0($sp)                        #store address of array
+  	  lw $s0, 4($sp)                        #low
+          lw $s1, 8($sp)                        #high
+          lw $ra, 12($sp)                       #stack allocation
+	  jr $ra
+          
+          
+
+partition:
+	  addi $sp, $sp, -16                    #allocate 4 words from stack
+ 	  sw $a0, 0($sp)                        #store address of array
+  	  sw $s0, 4($sp)                        #low
+          sw $s1, 8($sp)                        #high
+          sw $ra, 12($sp)                       #stack allocation
+          
+          sll $t1, $s1, 2                       #multiply high by 4 for offset
+          add $t1, $a0, $t0                     #adds offset to the base address
+          lw $t1, 0($t1)                        #set the pivot as array value at high
+          addi $t2, $s0, -1                     #set i to the low then add -1 to it
+          addi $t3, $s0, 0                      #set j to the low
+partition_loop:
+          slt $t4, $t3, $s1                     #compare j and high
+          beq $t4, $zero, partition_end         #exit to end if true
+          sll $t5, $t3, 2                       #multiply j by 4
+          add $t5, $a0, $t5                     #increment the offset
+          lw $t5, 0($t5)                        #load array at position j
+          slt $t6, $t1, $t5                     #compare array at position j to pivot
+          bne $t6, $zero, partition_alt         #skip this section to alt if 
+          addi $t2, $t2, 1                      #increment i
+          add $s0, $t2, $zero                   #set low to i for swapping
+          add $s1, $t3, $zero                   #set high to j for swapping
+          jal swap                              #go to swap
+          lw $s0, 4($sp)                        #reload low
+          lw $s1, 8($sp)                        #reload high
+          
+partition_alt:
+          addi $t3, $t3, 1                      #increment j
+          j partition_loop
+
+partition_end:
+          addi $s0, $t2, 1                      #increment low for swap
+          add  $s1, $s1, $zero                  #increment high for swap
+          jal swap
+          lw $s0, 4($sp)                        #reload low
+          lw $s1, 8($sp)                        #reload high
+          addi $v0, $t2, 1                      #return incremented i
+          jr $ra
+           
+print_array:
+          la $t8, array                          #load the array into $t2
+          la $a0, msg                            #stores prompt into $a0
+          li $v0, 4                              #syscall to print preprompt
+          syscall
+print_array_loop:
+          bge     $t7, 10, exit_print            #load word from one spot in array, exits if looped through entire array
+          lw      $t9, 0($t8)                    #gets value at next position in array
+          addi    $t8, $t8, 4                    #adds 4 to increment
+  	  move    $a0, $t9                       #move value to $a0
+  	  li      $v0, 1                         #syscall to print int    
+ 	  syscall
+          li      $a0, 32                        #syscall to print a white space
+ 	  li      $v0, 11                        #syscall to print char
+ 	  syscall
+ 	  addi    $t7, $t7, 1                    #increment counter for loop
+  	  j      print_array_loop                #return to start of loop and repeat for entire array
+exit_print:
+          li $t7, 0
+	  la $a0, return                         #stores prompt into $a0
+          li $v0, 4                              #syscall to print preprompt
+          syscall
+          jr $ra
+          
+
+
+  	  
+  	  
+           
+#void    
+#print_array(int *arr, int size){       
+#printf(“The integer list is “);      
+# for(int i = 0; i < size; i++)
+#printf("%d    ", *arr++);       
+#printf(“\n”);    
+#} 
+#void swap(int array[], int a, int b) {    
+#// first argument hold the address of array, second and third are index values   
+#int t = array[a];   
+#array[a] = array[b];   
+#array[b] = t;} 
+#int partition (int arr[], int low, int high) {       
+#int pivot = arr[high]; // pivot      
+#int i = (low - 1);  // Index of smaller element       
+#for (int j = low; j <= high - 1; j++) 
+#{
+#if (arr[j] <= pivot) 
+#{i++;    // increment index of smaller elementswap
+#(arr, i, j);
+#}        
+#}        
+#swap(arr, i + 1, high);       
+#return (i + 1);} 
+#void quickSort(int arr[], int low, int high) {       
+#if (low < high) 
+#{int pi = partition(arr, low, high); quickSort(arr, low, pi - 1);   
+#quickSort(arr, pi + 1, high);       
+#} 
+#}           
